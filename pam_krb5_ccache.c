@@ -14,25 +14,6 @@
 #include <krb5.h>
 
 #define MOD_NAME "pam_krb5_ccache"
-#define KRB5_CCACHE_LEN 512
-
-/*
-  Reimplement krb5_cc_default_name() because the function assumes getuid()
-  is the authenticating uid. This needs to come from PAM in a setuid context.
-  Following ksu's lead here.
-*/
-static void ksu_krb5_cc_default_name(char * name_buf, unsigned int name_size, uid_t uid) {
-  char * from_env;
-  from_env = getenv("KRB5CCNAME");
-  if (NULL == from_env) {
-    /* if env is unset, use the default value as ksu does */
-    snprintf(name_buf, name_size, "FILE:/tmp/krb5cc_%ld", (long int)uid); 
-  } else {
-    /* use the value from env, if it was set */
-    strncpy(name_buf, from_env, name_size);
-  }
-  name_buf[name_size - 1] = 0; /* ensure null termination */
-}
 
 /* sudo handles setting credentials for us, just return success */
 PAM_EXTERN int
@@ -45,7 +26,7 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv) 
   krb5_error_code krb_retval = 0;         /* For the return value of each krb5_ call */
   const char *krb_error_msg = NULL;       /* Human readable error string of krb_retval */
   krb5_context krb_context;               /* Kerberos context */
-  char cc_source_tag[KRB5_CCACHE_LEN];    /* Credential cache name. FILE:/tmp/krb5cc_* */
+  const char *cc_source_tag;              /* Credential cache name. */
   krb5_ccache cc_source = NULL;           /* Credential cache handle, derived from cc_source_tag */
   krb5_principal client;                  /* Default client principal of the credential cache */
   krb5_principal server;                  /* Host's principal */
@@ -104,7 +85,8 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv) 
   }
 
   /* find the ccache file's default location */
-  ksu_krb5_cc_default_name(cc_source_tag, KRB5_CCACHE_LEN - 1, ruid);
+  cc_source_tag = krb5_cc_default_name(krb_context);
+
   syslog(LOG_DEBUG, MOD_NAME ": cc_source_tag = %s", cc_source_tag);
 
   /* get a handle for the cache as cc_source, using the default name */
