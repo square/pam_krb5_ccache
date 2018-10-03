@@ -1,6 +1,6 @@
 all:
-	gcc -Wall -fPIC -c pam_krb5_ccache.c
-	ld -x --shared -lkrb5 -o pam_krb5_ccache.so pam_krb5_ccache.o
+	$(CC) -Wall -fPIC -c pam_krb5_ccache.c
+	$(CC) -s -shared  -o pam_krb5_ccache.so pam_krb5_ccache.o -lkrb5
 
 install:
 	mkdir -p "$(DESTDIR)/lib64/security"
