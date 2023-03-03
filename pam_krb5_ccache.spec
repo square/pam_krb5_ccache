@@ -1,5 +1,5 @@
 Name:           pam_krb5_ccache
-Version:        0.0.2
+Version:        0.1.0
 Release:        1%{?dist}
 Summary:        PAM module for ksu style Kerberos authentication in sudo.
 

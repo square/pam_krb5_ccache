@@ -26,6 +26,7 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv) 
   krb5_error_code krb_retval = 0;         /* For the return value of each krb5_ call */
   const char *krb_error_msg = NULL;       /* Human readable error string of krb_retval */
   krb5_context krb_context;               /* Kerberos context */
+  const char *env_ccname;                 /* Environment credential cache name */
   const char *cc_source_tag;              /* Credential cache name. */
   krb5_ccache cc_source = NULL;           /* Credential cache handle, derived from cc_source_tag */
   krb5_principal client;                  /* Default client principal of the credential cache */
@@ -84,6 +85,15 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv) 
     goto error_cleanup1;
   }
 
+  /* Based on https://github.com/krb5/krb5/commit/8b1fff99f59f779bf7f7261f17b835576e20d35d
+   * We want to obey KRB5CCNAME */
+  env_ccname = getenv("KRB5CCNAME");
+  if (env_ccname != NULL) {
+    if (krb5_cc_set_default_name(krb_context, env_ccname)) {
+      goto error_cleanup2;
+    }
+  }
+  
   /* find the ccache file's default location */
   cc_source_tag = krb5_cc_default_name(krb_context);
 
